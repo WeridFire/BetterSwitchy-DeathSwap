@@ -11,13 +11,13 @@ To install betterswitchy, download this repo, open the plugin folder of your min
 To give users access to the following commands you need them to have "switchy.user" permission.
 
 The command identifier here is "/switchy" with aliases: "/sw", "/swtch": 
-	/sw join <GameName> : makes you join game <GameName>
-     	/sw games : opens a GUI to join games
-      	/sw hub : teleport player to hub
-      	/sw quit : make player quit the game
-      	/sw showkit <KitName> : opens a gui to see a kit
-      	/sw kits : opens a gui to see all kits
-      	/sw help : if you need help with commands in game
+	"/sw join <GameName>" : makes you join game <GameName>
+     	"/sw games" : opens a GUI to join games
+      	"/sw hub" : teleport player to hub
+      	"/sw quit" : make player quit the game
+      	"/sw showkit <KitName>" : opens a gui to see a kit
+      	"/sw kits" : opens a gui to see all kits
+      	"/sw help" : if you need help with commands in game
       
 # Admin commands:
  To give admins access to the following commands you need them to have "switchy.admin" permission.
