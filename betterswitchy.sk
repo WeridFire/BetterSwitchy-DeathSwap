@@ -717,7 +717,7 @@ command /switchy [<text>] [<text>]:
 			send "<grey>Command not valid try <light blue>/sw help"
 
 # CUSTOM ITEMS COMMANDS
-command /iswitchy [<text>] [<text>] [<text>]:
+command /itemswitchy [<text>] [<text>] [<text>]:
 
 	aliases: /isw, /iswtch
 	permission: switchy.admin
