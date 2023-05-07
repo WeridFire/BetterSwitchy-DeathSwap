@@ -1,0 +1,748 @@
+# GAME OPTIONS
+options:
+	# general prefixes
+	gui_p: &9
+	player_p: &6&l
+	game_p: &3
+	kit_p: &5&l
+
+	# jumper
+	jumper: 1 feather named "&6&l&nJumper" with lore "&bRight-Click to big jump"
+	jumper_name: &6&l&nJumper
+	jumper_lore: &bRight-Click to big jump
+
+	# switcher
+	switcher: 1 clock named "&d&l&nSwitcher" with lore "&bRight-Click to switch in 3 seconds!"
+	switcher_name: &d&l&nSwitcher
+	switcher_lore: &bRight-Click to switch in 3 seconds!
+
+	# mushroom of power
+	mushroom: 1 red mushroom named "&4&l&nMushroom of power" with lore "&bRight-Click 5 secs of invicibility"
+	mushroom_name: &4&l&nMushroom of power
+	mushroom_lore: &bRight-Click 5 secs of invicibility
+
+
+# FUNCTIONS
+function playerDeath(p: player):
+	set {_name} to getNameGame({_p})
+	remove {_p} from {switchy::games::%{_name}%::players::*}
+	add {_p} to {switchy::games::%{_name}%::deaths::*}
+
+function playersAlive(name: text) :: integer:
+	set {_c} to 0
+	loop {switchy::games::%{_name}%::players::*}:
+		add 1 to {_c}
+	return {_c}
+
+function playersDead(name: text) :: integer:
+	set {_c} to 0
+	loop {switchy::games::%{_name}%::deaths::*}:
+		add 1 to {_c}
+	return {_c}
+
+function isPlayerDead(p: player, name: text) :: boolean:
+	if {switchy::games::%{_name}%::deaths::*} contains {_p}:
+		return true
+	return false
+
+function isPlayerAlive(p: player, name: text) :: boolean:
+	if {switchy::games::%{_name}%::players::*} contains {_p}:
+		return true
+	return false
+
+function playerQuit(p: player):
+	set {_name} to getNameGame({_p})
+	remove {_p} from {switchy::games::%{_name}%::players::*}
+	remove {_p} from {switchy::games::%{_name}%::deaths::*}
+	if {switchy::hub} is set:
+		teleport {_p} to {switchy::hub}
+
+	if {_p}'s gamemode is spectator:
+		set {_p}'s gamemode to survival
+
+function switchPlace(name: text):
+	loop {switchy::games::%{_name}%::players::*}:
+		set {_p} to loop-value
+		set {switchy::games::%{_name}%::players::%{_p}%::loc} to position of {_p}
+		set {_loc} to position of {_p}
+
+	loop {switchy::games::%{_name}%::players::*}:
+		set {_p2} to loop-value
+		teleport {_p2} to {_loc}
+		set {_loc} to {switchy::games::%{_name}%::players::%{_p2}%::loc}
+
+function isInGame(p: player) :: boolean:
+	loop {switchy::games::*}:
+		loop {switchy::games::%loop-value-1%::players::*}:
+			if {_p} is loop-value-2:
+				return true
+		loop {switchy::games::%loop-value-1%::deaths::*}:
+			if {_p} is loop-value-2:
+				return true
+	return false
+
+function getNameGame(p: player) :: text:
+	loop {switchy::games::*}:
+		loop {switchy::games::%loop-value-1%::players::*}:
+			if {_p} is loop-value-2:
+				return loop-value-1
+		loop {switchy::games::%loop-value-1%::deaths::*}:
+			if {_p} is loop-value-2:
+				return loop-value-1
+
+function getGamePlayers(name: text) :: objects:
+	loop {switchy::games::%{_name}%::players::*}:
+		add loop-value to {_l::*}
+	loop {switchy::games::%{_name}%::deaths::*}:
+		add loop-value to {_l::*}
+	return {_l::*}
+
+function backToHub(name: text):
+	loop {switchy::games::%{_name}%::players::*}:
+		teleport loop-value to {switchy::hub}
+	loop {switchy::games::%{_name}%::deaths::*}:
+		teleport loop-value to {switchy::hub}
+
+function clearGame(name: text):
+	clear {switchy::games::%{_name}%::*}
+	remove {_name} from {switchy::games::*}
+
+function weHaveAWinner(name: text):
+	set {_players} to getGamePlayers({_name})
+	loop {switchy::games::%{_name}%::players::*}:
+		set {_winner} to loop-value
+	loop {_players::*}:
+		send "&b&l%{_winner}% <purple>WON THE GAME!" to loop-value
+		send loop-value title "&b&l%{_winner}% <purple>WON THE GAME!" for 5 seconds
+	backToHub({_name})
+	clearGame({_name})
+
+function giveKit(p: player, kitname: text) :: text:
+	if {switchy::kits::*} contains {_kitname}:
+		loop {switchy::kits::%{_kitname}%::items::*}:
+			give loop-value to {_p}
+	else:
+		return "<grey>Kit <orange>%{_kitname}% <grey>does not exist"
+
+function saveKit(p: player, kitname: text) :: text:
+	if {switchy::kits::*} contains {_kitname}:
+		return "<grey>Sorry, a kit named <orange>%{_kitname}% <grey>already exist."
+	
+	add {_kitname} to {switchy::kits::*}
+	loop {_p}'s inventory:
+		add loop-value to {switchy::kits::%{_kitname}%::items::*}
+	
+	return "<green>Done."
+
+function delkit(kitname: text) :: text:
+	if {switchy::kits::*} contains {_kitname}:
+		clear {switchy::kits::%{_kitname}%::*}
+		remove {_kitname} from {switchy::kits::*} 
+		return "<green>Kit named <orange>%{_kitname}% <green>has been deleted."
+
+	return "<grey>Sorry, a kit named <orange>%{_kitname}% <grey>does not exist."
+
+
+function itemJumper(p: player):
+	push {_p} upwards with speed 1
+	remove feather named "{@jumper_name}" from {_p}'s inventory
+	apply swiftness 2 to {_p} for 2 seconds
+	play sound "block.scaffolding.hit" to {_p}
+	set {switchy::players::%{_p}%::falldamage} to false
+	wait 10 seconds
+	set {switchy::players::%{_p}%::falldamage} to true
+
+function itemSwitcher(p: player):
+	set {_name} to getNameGame({_p})
+	remove clock named "{@switcher_name}" from {_p}'s inventory
+	loop 5 times:
+		loop getGamePlayers({_name}):
+			send "<orange>&l%6 - loop-value-1%" to loop-value-2
+		wait 1 second
+	loop getGamePlayers({_name}):
+		send "<green>&lSWITCH" to loop-value 
+	switchPlace({_name})
+
+function itemMushroom(p: player):
+	send "<light blue>You are now <orange>&lINVINCIBLE <reset><light blue>for <green>5 seconds"
+	set {_name} to getNameGame({_p})
+	set {switchy::games::%{_name}%::players::%{_p}%::invincible} to true
+	wait 5 seconds
+	set {switchy::games::%{_name}%::players::%{_p}%::invincible} to false
+
+function giveItem(p: player, item: text) :: text:
+	if {_item} is "jumper":
+		give {_p} {@jumper}
+
+	else if {_item} is "switcher":
+		give {_p} {@switcher}
+
+	else if {_item} is "mushroom_of_power":
+		give {_p} {@mushroom}
+
+	else:
+		return "<grey>Item <orange>%{_item}% <grey>does not exist"
+	
+	return "<green>Done"
+
+function createGame(name: text):
+	add {_name} to {switchy::games::*}
+	send message formatted "<yellow>New game created <orange><cmd:/sw join %{_name}%><tooltip:&aClick to Join>&l%{_name}% " to all players
+
+function sendMessage(name: text, content: text):
+	loop {switchy::games::%{_name}%::players::*}:
+		send {_content} to loop-value
+	loop {switchy::games::%{_name}%::deaths::*}:
+		send {_content} to loop-value
+
+
+function startGame(name: text) :: text:
+
+	set {switchy::games::%{_name}%::ingame} to true
+
+	# SETTINGS
+	# gametime check
+	if {switchy::games::%{_name}%::gametime} is not set:
+		set {_gametime} to {switchy::defaultgametime}
+	else:
+		set {_gametime} to {switchy::games::%{_name}%::gametime}
+	
+	# mins to count check
+	if {switchy::games::%{_name}%::mins_to_count::*} is not set:
+		loop {switchy::default_mins_to_count::*}:
+			add loop-value to {switchy::games::%{_name}%::mins_to_count::*}
+
+	# default minimum players
+	if {switchy::games::%{_name}%::min_players} is not set:
+		set {_min_players} to {switchy::default_min_players}
+	else:
+		set {_min_players} to {switchy::games::%{_name}%::min_players}
+
+	# default maximun players
+	if {switchy::games::%{_name}%::min_players} is not set:
+		set {_max_players} to {switchy::default_max_players}
+	else:
+		set {_max_players} to {switchy::games::%{_name}%::max_players}
+	add 1 to {_max_players} 
+
+	# default countdown
+	if {switchy::games::%{_name}%::countdown} is not set:
+		set {_countdown} to {switchy::default_countdown}
+	else:
+		set {_countdown} to {switchy::games::%{_name}%::countdown}
+		add 1 to {_countdown}
+
+	# CHECKS
+	# check if enought players
+	if playersAlive({_name}) is less than {_min_players}:
+		return "<grey>Not enought players"
+
+	# check max players
+	if playersAlive({_name}) is more than {_max_players}:
+		return "<grey>Can't start the game, too many players"
+	
+	# check players gamemode
+	loop getGamePlayers({_name}):
+		if loop-value's gamemode is not survival:
+			set loop-value's gamemode to survival
+
+	# GAMECORE
+	sendMessage({_name}, "<yellow>Game is starting...")
+
+	while {switchy::games::%{_name}%::ingame} is true:
+		set {_t} to {_gametime}
+		loop {_gametime} times:
+			if {switchy::games::%{_name}%::ingame} is true:
+
+				if {_t} is divisible by 60 :
+					if {switchy::games::%{_name}%::mins_to_count::*} contains {_t}/60:
+						sendMessage({_name}, "<orange>&l%{_t}/60% <reset><yellow>mins before the switch")
+
+				if {_t} is less than {_countdown} :
+					sendMessage({_name}, "<orange>&l%{_t}% <reset><yellow>secs before the switch")
+				
+				remove 1 from {_t}
+
+				if playersAlive({_name}) is more than 1:
+					wait 1 second
+				else:
+					set {switchy::games::%{_name}%::ingame} to false
+					weHaveAWinner({_name})
+
+		if {switchy::games::%{_name}%::ingame} is true:
+			sendMessage({_name}, "<green>&lSWITCH")
+			switchPlace({_name})
+	
+
+function stopGame(name: text):
+	if {switchy::games::*} contains {_name}:
+		backToHub({_name})
+		clearGame({_name})
+
+function joinGame(p: player, name: text) :: text:
+	if {switchy::games::*} contains {_name}:
+		if {switchy::games::%{_name}%::ingame} is true:
+			return "<grey>The game you are trying to join has already started!"
+		else:
+			if {switchy::games::%{_name}%::min_players} is not set:
+				set {_max_players} to {switchy::default_max_players}
+			else:
+				set {_max_players} to {switchy::games::%{_name}%::max_players}
+			add 1 to {_max_players} 
+			
+			if playersAlive({_name}) is less than {_max_players}:
+				add {_p} to {switchy::games::%{_name}%::players::*}
+				return "<green>Succesfully joined game <orange>&l%{_name}%"
+			else:
+				return "<grey>Sorry, this game is full"
+	else:
+		return "<grey>That game does not exist"
+
+function setOption(name: text, option: text, value: integer) :: text:
+	if {switchy::games::*} contains {_name}:
+		if {_option} is "gametime":
+			set {switchy::games::%{_name}%::gametime} to {_value}
+			return "<yellow>%{_option}% <grey>= <green>%{_value}% <grey>for game <orange>%{_name}%"
+		else if {_option} is "min_players":
+			set {switchy::games::%{_name}%::min_players} to {_value}
+			return "<yellow>%{_option}% <grey>= <green>%{_value}% <grey>for game <orange>%{_name}%"
+		else if {_option} is "max_players":
+			set {switchy::games::%{_name}%::max_players} to {_value}
+			return "<yellow>%{_option}% <grey>= <green>%{_value}% <grey>for game <orange>%{_name}%"
+		else if {_option} is "countdown":
+			set {switchy::games::%{_name}%::countdown} to {_value}
+			return "<yellow>%{_option}% <grey>= <green>%{_value}% <grey>for game <orange>%{_name}%"
+	else:
+		return "<grey>Game <orange>%{_name}% <grey>does not exist"
+
+function load():
+	# default mins to count
+	clear {switchy::default_mins_to_count::*}
+	add 1 to {switchy::default_mins_to_count::*}
+	add 2 to {switchy::default_mins_to_count::*}
+	add 3 to {switchy::default_mins_to_count::*}
+	add 5 to {switchy::default_mins_to_count::*}
+	add 10 to {switchy::default_mins_to_count::*}
+
+	# default min players
+	set {switchy::default_min_players} to 1
+
+	# default max players
+	set {switchy::default_max_players} to 10
+
+	# default countdown
+	set {switchy::default_countdown} to 5
+
+	# default switch time in seconds
+	set {switchy::defaultgametime} to 180
+
+	# start kit
+	if {switchy::kits::*} contains "start":
+		clear {switchy::kits::start::*}
+	else:
+		add "start" to {switchy::kits::*}
+	set {switchy::kits::start::symbol} to stone sword
+	add water bucket to {switchy::kits::start::items::*}
+	add 12 slime blocks to {switchy::kits::start::items::*}
+	add 1 enchanted golden apple to {switchy::kits::start::items::*}
+
+	# enderboy kit
+	if {switchy::kits::*} contains "enderboy":
+		clear {switchy::kits::enderboy::*}
+	else:
+		add "enderboy" to {switchy::kits::*}
+	set {switchy::kits::enderboy::symbol} to elytra
+	add 16 ender pearl to {switchy::kits::enderboy::items::*}
+	add 1 elytra to {switchy::kits::enderboy::items::*}
+	add 64 firework rocket to {switchy::kits::enderboy::items::*}
+
+	# magic kit
+	if {switchy::kits::*} contains "magic":
+		clear {switchy::kits::magic::*}
+	else:
+		add "magic" to {switchy::kits::*}
+	set {switchy::kits::magic::symbol} to blaze rod
+	add {@jumper} to {switchy::kits::magic::items::*}
+	add {@switcher} to {switchy::kits::magic::items::*}
+
+	# kamikaze kit
+	if {switchy::kits::*} contains "kamikaze":
+		clear {switchy::kits::kamikaze::*}
+	else:
+		add "kamikaze" to {switchy::kits::*}
+	set {switchy::kits::kamikaze::symbol} to creeper egg
+	add 5 tnt to {switchy::kits::kamikaze::items::*}
+	add 2 stone pressure plate to {switchy::kits::kamikaze::items::*}
+	add 3 creeper egg to {switchy::kits::kamikaze::items::*}
+
+# GUIs
+function gamesGui(p: player):
+	set {_gui} to a new chest inventory with 5 rows named "{@gui_p}Games"
+	#limite di games è 20. Max 20 slot
+	set slot 0,1,2,3,4,5,6,7,8,9,17,18,26,27,35,36,37,38,39,40,41,42,43,44 of {_gui} to white stained glass pane named ""
+	set slot 4 of {_gui} to skull of {_p} named "{@player_p}%{_p}%"
+	set slot 40 of {_gui} to green stained glass pane named "{@gui_p}Games"
+	set {_slot} to 10
+	loop {switchy::games::*}:
+		set {_status} to {switchy::games::%loop-value%::ingame}
+		if {_status} is true:
+			set {_block} to redstone block
+			set {_state} to "<orange>Ingame..."
+		else:
+			set {_block} to emerald block
+			set {_state} to "&aClick to join"
+		set slot {_slot} of {_gui} to {_block} named "{@game_p}%loop-value%" with lore "%{_state}%"
+		add 1 to {_slot}
+		if {_slot} is 17 or 26:
+			add 2 to {_slot}
+	open {_gui} to {_p}
+
+function showKit(p: player, kitname: text):
+	set {_gui} to a new chest inventory with 4 rows named "{@gui_p}Kit %{_kitname}%"
+	set slot 0,1,2,3,4,5,6,7,8,9,17,18,26,27,28,29,30,31,32,33,34 of {_gui} to white stained glass pane named ""
+	set slot 4 of {_gui} to skull of {_p} named "{@player_p}%{_p}%"
+	set slot 35 of {_gui} to red wool named "&6Back"
+	set {_slot} to 10
+	loop {switchy::kits::%{_kitname}%::items::*}:
+		set slot {_slot} of {_gui} to loop-value
+		add 1 to {_slot}
+		if {_slot} is 17 or 26:
+			add 2 to {_slot}
+	open {_gui} to {_p}
+
+function kitsGui(p: player):
+	set {_gui} to a new chest inventory with 4 rows named "{@gui_p}Kits"
+	set slot 0,1,2,3,4,5,6,7,8,9,17,18,26,27,28,29,30,31,32,33,34,35 of {_gui} to white stained glass pane named ""
+	set slot 4 of {_gui} to skull of {_p} named "{@player_p}%{_p}%"
+	set {_slot} to 10
+	loop {switchy::kits::*}:
+		set slot {_slot} of {_gui} to {switchy::kits::%loop-value%::symbol} named "{@kit_p}%loop-value%" with lore "&aClick to see"
+		add 1 to {_slot}
+		if {_slot} is 17 or 26:
+			add 2 to {_slot}
+	open {_gui} to {_p}
+
+
+# ON INVENTORY CLICK
+on inventory click:
+	if name of event-inventory is "{@gui_p}Games":
+		loop {switchy::games::*}:
+			if event-item is emerald block named "{@game_p}%loop-value%":
+				make player execute command "/sw join %loop-value%"
+			cancel event
+		cancel event
+
+	else if name of event-inventory is "{@gui_p}Kits":
+		loop {switchy::kits::*}:
+			if event-item's name is "{@kit_p}%loop-value%":
+				make player execute command "/sw showkit %loop-value%"
+		cancel event
+
+	else:
+		loop {switchy::kits::*}:
+			if name of event-inventory is "{@gui_p}Kit %loop-value%":
+				if event-item's name is "&6Back":
+					make player execute command "/sw kits"
+				cancel event
+
+# ON RESPAWN
+on respawn:
+	if isInGame(event-player) is true:
+		set {_name} to getNameGame(event-player)
+		if isPlayerDead(event-player, {_name}) is true:
+			set event-player's gamemode to spectator
+
+# ON QUIT
+on quit:
+	playerQuit(event-player)
+	set {_name} to getNameGame(event-player)
+	set {_n} to playersAlive({_name})
+	if {_n} is 0:
+		clearGame({_name})
+	else if {_n} is 1:
+		weHaveAWinner({_name})
+			
+# ON DEATH
+on death:
+	if isInGame(victim) is true:
+		playerDeath(victim)
+		set {_name} to getNameGame(victim)
+		if playersAlive({_name}) is 1:
+			weHaveAWinner({_name})
+
+# ON RIGHT-CLICK
+on right click:
+	if isInGame(player):
+
+		if tool's name is "{@jumper_name}":
+			if tool's lore is "{@jumper_lore}":
+				itemJumper(player)
+
+		else if tool's name is "{@switcher_name}":
+			if tool's lore is "{@switcher_lore}":
+				itemSwitcher(player)
+
+		else if tool's name is "{@mushroom_name}":
+			if tool's lore is "{@mushroom_lore}":
+				itemMushroom(player)
+
+		
+
+# ON FALL DAMAGE
+on damage:
+	set {_name} to getNameGame(victim)
+
+	if {switchy::games::%{_name}%::players::%victim%::invincible} is true:
+		cancel event
+
+	if damage is caused by fall:
+		if {switchy::players::%victim%::falldamage} is false:
+			cancel event
+			set {switchy::players::%victim%::falldamage} to true
+
+# ON LOAD
+on load:
+	load()
+
+# ADMIN COMMANDS
+command /adminswitchy [<text>] [<text>] [<text>] [<text>]:
+
+	aliases: /asw, /aswtch
+	permission: switchy.admin
+
+	trigger:
+		
+		# /asw create <GameName>
+		if arg-1 is "create":
+			if arg-2 is set:
+				set {_name} to arg-2
+				if {switchy::games::*} contains {_name}:
+					send "<grey>Sorry a game named <oramge>%{_name}% <grey>already exist."
+				else:
+					createGame({_name})
+			else:
+				send "<grey>Please specify a game name."
+
+		# /asw start <GameName>
+		else if arg-1 is "start":
+			if arg-2 is set:
+				set {_name} to arg-2
+				if {switchy::games::*} contains {_name}:
+					set {_resp} to startGame({_name})
+					send {_resp}
+				else:
+					send "<grey>Thre is no game named <orange>%{_name}%"
+			else:
+				send "<grey>Please specify a game name."
+		
+		# /asw delete <GameName>
+		else if arg-1 is "delete":
+			if arg-2 is set:
+				set {_name} to arg-2
+				if {switchy::games::*} contains {_name}:
+					stopGame({_name})
+					send "<green>Done."
+				else:
+					send "<orange>%{_name}% <grey>does not exist"
+			else:
+				send "<grey>Please specify a game name."
+
+		# /asw format confirm
+		else if arg-1 is "format":
+			send "<red>Are you sure you want to delete all your personal options and restore to default values?"
+			send "<red>Digit <yellow>/asw format confirm <red>to restore"
+			if arg-2 is "confirm":
+				clear {switchy::*}
+				load()
+				send "<orange>All data eleminated correctly"
+
+		# /asw kit <kitName> [<player>]
+		else if arg-1 is "kit":
+			if arg-3 is set:
+				set {_p} to arg-3
+			else:
+				set {_p} to player
+			if arg-2 is set:
+				set {_resp} to giveKit({_p}, arg-2)
+				send {_resp}
+			else:
+				send "<grey>Specify a kit name"
+
+		# /asw savekit <kitName>
+		else if arg-1 is "savekit":
+			if arg-2 is set:
+				set {_resp} to saveKit(player, arg-2)
+				send {_resp}
+				send "<yellow>Remember to set the kit symbol (while holding it) with <green>/asw setsymbol <kitName> <yellow> or it will not be shown in <orange>/sw kits<yellow>!"
+			else:
+				send "<grey>Please specify a kit name"
+
+		# /asw setsymbol
+		else if arg-1 is "setsymbol":
+			if {switchy::kits::*} contains arg-2:
+				if player's held item is 0 air:
+					send "<grey>Please hold the symbol"
+				else:
+					set {switchy::kits::%arg-2%::symbol} to player's held item
+					send "<green>Done"
+			else:
+				send "<grey>Please specify a valid kit name"
+
+		# /asw delkit <kitName>
+		else if arg-1 is "delkit":
+			if arg-2 is set:
+				set {_resp} to delkit(arg-2)
+				send {_resp}
+			else:
+				send "<grey>Please specify a kit name"
+
+		# /asw sethub
+		else if arg-1 is "sethub":
+			set {switchy::hub} to player's location
+
+		# /asw send <GameName> <Message>
+		else if arg-1 is "send":
+			if {switchy::games::*} contains arg-2:
+				if arg-3 is set:
+					sendMessage(arg-2, arg-3)
+					send "<green>Done"
+				else:
+					send "<grey>Specify a message"
+			else:
+				send "<grey>Specify a valid game"
+
+		# /asw setoption <GameName> <OptionName> <Value>
+		else if arg-1 is "setoption":
+			if arg-2 is set:
+				set {_name} to arg-2
+				if arg-3 is set:
+					set {_option} to arg-3
+					if arg-4 is set:
+						set {_value} to arg-4
+						set {_rsp} to setOption({_name}, {_option}, "%{_value}%" parsed as integer)
+						send {_rsp}
+					else:
+						send "<grey>Specify a value please"
+				else:
+					send "<grey>Specify an option please"
+			else:
+				send "<grey>Specify a game name please"
+
+		# /asw help
+		else if arg-1 is "help":
+			send "<green>====================<purple>&lHELP<reset><green>===================="
+			send "<light blue>/asw create <GameName><grey> : creates a new game"
+			send "<light blue>/asw start <GameName><grey> : starts a new game"
+			send "<light blue>/asw delete <GameName><grey> : delete an existing game"
+			send "<light blue>/asw kit <kitName> [<player>]<grey> : give a kit to a player"
+			send "<light blue>/asw savekit <kitName><grey> : saves your inventory as a kit named <kitName>"
+			send "<light blue>/asw delkit <kitName><grey> : delete an existing kit"
+			send "<light blue>/asw setsymbol<grey> : sets a symbol for the kit to be displayed in /sw kits"
+			send "<light blue>/asw sethub<grey> : sets the hub where all players will be teleported after the game"
+			send "<light blue>/asw format<grey> : restore every option to default value"
+			send "<light blue>/asw setoption <GameName> <OptionName> <Value><grey> : set a custom game option for your game"
+			send "<green>====================<purple>&lHELP<reset><green>===================="
+		
+		# if command not valid
+		else:
+			send "<grey>Command not valid try <light blue>/asw help"
+
+# USER COMMANDS
+command /switchy [<text>] [<text>]:
+
+	aliases: /sw, /swtch
+	permission: switchy.user
+
+	trigger:
+		
+		# /sw join <GameName>
+		if arg-1 is "join":
+			if isInGame(player) is false:
+				if arg-2 is set:
+					set {_resp} to joinGame(player, arg-2)
+					if {_resp} is not set:
+						set {_resp} to "&aDone"
+					send {_resp}
+				else:
+					send "<grey>Please specify a game name"
+			else:
+				send "<grey>You can't join a game while in game"
+
+		# /sw games
+		else if arg-1 is "games":
+			if isInGame(player) is true:
+				send "<grey>You have not to be in game to perform this command"
+			else:
+				gamesGui(player)
+				
+		# /sw hub
+		else if arg-1 is "hub":
+			if {switchy::hub} is set:
+				teleport player to {switchy::hub}
+				if isInGame(player):
+					make player execute "/sw quit"
+
+		# /sw quit
+		else if arg-1 is "quit":
+			if isInGame(player) is true:
+				playerQuit(player)
+				send "<grey>Done."
+			else:
+				send "<grey>You can't perform this action while not in game"
+
+		# /sw showkit <KitName>
+		else if arg-1 is "showkit":
+			if {switchy::kits::*} contains arg-2:
+				showKit(player, arg-2)
+			else:
+				send "<grey>Please specify a valid kitName"
+		
+		# /sw kits
+		else if arg-1 is "kits":
+			kitsGui(player)
+
+		# /sw help
+		else if arg-1 is "help":
+			send "<green>====================<purple>&lHELP<reset><green>===================="
+			send "<light blue>/sw join <GameName> <grey>: makes you join game <GameName>"
+			send "<light blue>/sw games <grey>: opens a GUI to join games"
+			send "<light blue>/sw hub <grey>: teleport player to hub"
+			send "<light blue>/sw quit <grey>: make player quit the game"
+			send "<light blue>/sw showkit <KitName> <grey>: opens a gui to see a kit"
+			send "<light blue>/sw kits <grey>: opens a gui to see all kits"
+			send "<green>====================<purple>&lHELP<reset><green>===================="
+
+		# if command not valid
+		else:
+			send "<grey>Command not valid try <light blue>/sw help"
+
+# CUSTOM ITEMS COMMANDS
+command /iswitchy [<text>] [<text>] [<text>]:
+
+	aliases: /isw, /iswtch
+	permission: switchy.admin
+
+	trigger:
+
+		# /isw give <MagicItem> <Player>
+		if arg-1 is "give":
+			if arg-2 is set:
+				if (arg-3 parsed as player) is set:
+					set {_p} to (arg-2 parsed as player)
+				else:
+					set {_p} to player
+				
+				set {_resp} to giveItem({_p}, arg-1)
+				send {_resp}
+			else:
+				send "<grey>Specify a magic item"
+
+		# /isw help
+		else if arg-1 is "help":
+			send "<green>====================<purple>&lHELP<reset><green>===================="
+			send "<light blue>/isw give <MagicItem> <Player>: gives <Player> a <MagicItem>"
+			send "<green>====================<purple>&lHELP<reset><green>===================="
+
+		# if command not valid
+		else:
+			send "<grey>Specify an item name"
