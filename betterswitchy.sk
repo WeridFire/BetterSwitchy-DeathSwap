@@ -21,6 +21,40 @@ options:
 	mushroom_name: &4&l&nMushroom of power
 	mushroom_lore: &bRight-Click 5 secs of invicibility
 
+	# teleporter
+	teleporter: 1 tripwire hook named "&a&l&nTeleporter" with lore "&bRight-Click to open the teleporter"
+	teleporter_name: &a&l&nTeleporter
+	teleporter_lore: &bRight-Click to open the teleporter
+
+	# pitches
+	Fs1: 0.5
+	G1: 0.53
+	Gs1: 0.561
+	A1:	0.595
+	As1: 0.63 
+	B1:	0.667
+	C1:	0.707
+	Cs1: 0.749
+	D1:	0.794
+	Ds1: 0.841
+	E1:	0.891
+	F1:	0.944
+	Fs2: 1
+	G2:	1.059
+	Gs2: 1.122
+	A2: 1.189
+	As2: 1.26
+	B2: 1.335
+	C2: 1.414
+	Cs2: 1.498
+	D2:	1.587
+	Ds2: 1.682
+	E2:	1.782
+	F2:	1.888
+	Fs3: 2
+
+	# sounds
+	pling: "block.note_block.pling"
 
 # FUNCTIONS
 function playerDeath(p: player):
@@ -62,11 +96,16 @@ function playerQuit(p: player):
 
 function switchPlace(name: text):
 	loop {switchy::games::%{_name}%::players::*}:
+		if {_killer} is set:
+			set {switchy::games::%{_name}%::players::%{_p}%::killer} to {_killer}
 		set {_p} to loop-value
 		set {switchy::games::%{_name}%::players::%{_p}%::loc} to position of {_p}
 		set {_loc} to position of {_p}
+		set {_killer} to {_p}
 
 	loop {switchy::games::%{_name}%::players::*}:
+		if loop-index is "1":
+			set {switchy::games::%{_name}%::players::%{_p}%::killer} to {_killer}
 		set {_p2} to loop-value
 		teleport {_p2} to {_loc}
 		set {_loc} to {switchy::games::%{_name}%::players::%{_p2}%::loc}
@@ -142,6 +181,16 @@ function delkit(kitname: text) :: text:
 
 	return "<grey>Sorry, a kit named <orange>%{_kitname}% <grey>does not exist."
 
+function selectKit(p: player, kitname: text) :: text:
+	if {switchy::kits::*} contains {_kitname}:
+		if isInGame({_p}) is true:
+			set {_name} to getNameGame({_p})
+			set {switchy::games::%{_name}%::players::%{_p}%::kit} to {_kitname}
+			return "<green>You will start next game with kit <orange>%{_kitname}%"
+		else:
+			return "<grey>Sorry you can't select a kit if you are not waiting for a game to start"
+	else:
+		return "<grey>Sorry this kit does not exist"
 
 function itemJumper(p: player):
 	push {_p} upwards with speed 1
@@ -164,11 +213,16 @@ function itemSwitcher(p: player):
 	switchPlace({_name})
 
 function itemMushroom(p: player):
-	send "<light blue>You are now <orange>&lINVINCIBLE <reset><light blue>for <green>5 seconds"
+	send "<light blue>You are now <orange>&lINVINCIBLE <reset><light blue>for <green>5 seconds" to {_p}
+	remove red mushroom named "{@mushroom_name}" from {_p}'s inventory
 	set {_name} to getNameGame({_p})
 	set {switchy::games::%{_name}%::players::%{_p}%::invincible} to true
 	wait 5 seconds
 	set {switchy::games::%{_name}%::players::%{_p}%::invincible} to false
+
+function itemTeleporter(p: player):
+	set {_name} to getNameGame({_p})
+	teleporterGui({_p}, {_name})
 
 function giveItem(p: player, item: text) :: text:
 	if {_item} is "jumper":
@@ -179,6 +233,9 @@ function giveItem(p: player, item: text) :: text:
 
 	else if {_item} is "mushroom_of_power":
 		give {_p} {@mushroom}
+
+	else if {_item} is "teleporter":
+		give {_p} {@teleporter}
 
 	else:
 		return "<grey>Item <orange>%{_item}% <grey>does not exist"
@@ -245,6 +302,13 @@ function startGame(name: text) :: text:
 	loop getGamePlayers({_name}):
 		if loop-value's gamemode is not survival:
 			set loop-value's gamemode to survival
+
+	# clear inventory and give kit
+	loop {switchy::games::%{_name}%::players::*}:
+		set {_kitname} to {switchy::games::%{_name}%::players::%loop-value%::kit}
+		if {switchy::games::%{_name}%::players::%loop-value%::kit} is set:
+			giveKit(loop-value, {_kitname})
+		clear loop-value's inventory
 
 	# GAMECORE
 	sendMessage({_name}, "<yellow>Game is starting...")
@@ -315,6 +379,9 @@ function setOption(name: text, option: text, value: integer) :: text:
 	else:
 		return "<grey>Game <orange>%{_name}% <grey>does not exist"
 
+function playSound(p: player, sound: text, pitch: number, vol: integer):
+	play sound {_sound} at volume {_vol} at pitch {_pitch} to {_p}
+
 function load():
 	# default mins to count
 	clear {switchy::default_mins_to_count::*}
@@ -336,6 +403,7 @@ function load():
 	# default switch time in seconds
 	set {switchy::defaultgametime} to 180
 
+	# KITS
 	# start kit
 	if {switchy::kits::*} contains "start":
 		clear {switchy::kits::start::*}
@@ -422,6 +490,19 @@ function kitsGui(p: player):
 			add 2 to {_slot}
 	open {_gui} to {_p}
 
+function teleporterGui(p: player, name: text):
+	set {_players::*} to getGamePlayers({_name})
+	set {_gui} to a new chest inventory with 4 rows named "{@gui_p}Players"
+	set slot 0,1,2,3,4,5,6,7,8,9,17,18,26,27,28,29,30,31,32,33,34,35 of {_gui} to white stained glass pane named ""
+	set slot 4 of {_gui} to skull of {_p} named "{@player_p}%{_p}%"
+	set {_slot} to 10
+	loop {_players::*}:
+		set slot {_slot} of {_gui} to skull of loop-value named "{@player_p}%loop-value%"
+		add 1 to {_slot}
+		if {_slot} is 17 or 26:
+			add 2 to {_slot}
+	open {_gui} to {_p}
+	remove tripwire hook named "{@teleporter_name}" from {_p}'s inventory
 
 # ON INVENTORY CLICK
 on inventory click:
@@ -438,6 +519,19 @@ on inventory click:
 				make player execute command "/sw showkit %loop-value%"
 		cancel event
 
+	else if name of event-inventory is "{@gui_p}Players":
+		set {_name} to getNameGame(player)
+		set {_players::*} to getGamePlayers({_name})
+		loop {_players::*}:
+			if event-item is loop-value's skull:
+				send "&3Someone is arriving in 5 seconds... get safe" to loop-value
+				close player's inventory
+				loop 5 times:
+					send "&b&4%loop-value-2%"
+					wait 1 second
+				teleport player to loop-value
+		cancel event
+	
 	else:
 		loop {switchy::kits::*}:
 			if name of event-inventory is "{@gui_p}Kit %loop-value%":
@@ -465,6 +559,7 @@ on quit:
 # ON DEATH
 on death:
 	if isInGame(victim) is true:
+		sendMessage({_name}, "<purple>%victim% <light blue>has beeen killed by <orange>%{switchy::games::%{_name}%::players::%victim%::killer}%")
 		playerDeath(victim)
 		set {_name} to getNameGame(victim)
 		if playersAlive({_name}) is 1:
@@ -472,7 +567,7 @@ on death:
 
 # ON RIGHT-CLICK
 on right click:
-	if isInGame(player):
+	if isInGame(player) is false:
 
 		if tool's name is "{@jumper_name}":
 			if tool's lore is "{@jumper_lore}":
@@ -485,6 +580,10 @@ on right click:
 		else if tool's name is "{@mushroom_name}":
 			if tool's lore is "{@mushroom_lore}":
 				itemMushroom(player)
+
+		else if tool's name is "{@teleporter_name}":
+			if tool's lore is "{@teleporter_lore}":
+				itemTeleporter(player)
 
 		
 
@@ -628,6 +727,18 @@ command /adminswitchy [<text>] [<text>] [<text>] [<text>]:
 			else:
 				send "<grey>Specify a game name please"
 
+		# /asw set_default_kit <Game> <KitName>
+		else if arg-1 is "set_default_kit":
+			if {switchy::games::*} contains arg-2:
+				if {switchy::kits::*} contains arg-3:
+					loop {switchy::games::%{_name}%::players::*}:
+						selectKit(loop-value, arg-3)
+					send "<green>Done."
+				else:
+					send "<grey>Kit <orange>%arg-3% <grey>does not exist"
+			else:
+				send "<grey>Game <orange>%arg-2% <grey>does not exist"
+
 		# /asw help
 		else if arg-1 is "help":
 			send "<green>====================<purple>&lHELP<reset><green>===================="
@@ -641,6 +752,7 @@ command /adminswitchy [<text>] [<text>] [<text>] [<text>]:
 			send "<light blue>/asw sethub<grey> : sets the hub where all players will be teleported after the game"
 			send "<light blue>/asw format<grey> : restore every option to default value"
 			send "<light blue>/asw setoption <GameName> <OptionName> <Value><grey> : set a custom game option for your game"
+			send "<light blue>/asw set_default_kit <Game> <KitName> <grey>: set a default kit for all players in a game"
 			send "<green>====================<purple>&lHELP<reset><green>===================="
 		
 		# if command not valid
@@ -700,6 +812,14 @@ command /switchy [<text>] [<text>]:
 		# /sw kits
 		else if arg-1 is "kits":
 			kitsGui(player)
+		
+		# /sw kit <KitName>
+		else if arg-1 is "kit":
+			if arg-2 is set:
+				set {_resp} to selectKit(player, arg-2)
+				send {_resp}
+			else:
+				send "<grey>Please specify a kitname"
 
 		# /sw help
 		else if arg-1 is "help":
@@ -710,6 +830,7 @@ command /switchy [<text>] [<text>]:
 			send "<light blue>/sw quit <grey>: make player quit the game"
 			send "<light blue>/sw showkit <KitName> <grey>: opens a gui to see a kit"
 			send "<light blue>/sw kits <grey>: opens a gui to see all kits"
+			send "<light blue>/sw kit <KitName> <grey>: let player set his next game kit"
 			send "<green>====================<purple>&lHELP<reset><green>===================="
 
 		# if command not valid
@@ -728,11 +849,11 @@ command /itemswitchy [<text>] [<text>] [<text>]:
 		if arg-1 is "give":
 			if arg-2 is set:
 				if (arg-3 parsed as player) is set:
-					set {_p} to (arg-2 parsed as player)
+					set {_p} to (arg-3 parsed as player)
 				else:
 					set {_p} to player
 				
-				set {_resp} to giveItem({_p}, arg-1)
+				set {_resp} to giveItem({_p}, arg-2)
 				send {_resp}
 			else:
 				send "<grey>Specify a magic item"
@@ -740,7 +861,7 @@ command /itemswitchy [<text>] [<text>] [<text>]:
 		# /isw help
 		else if arg-1 is "help":
 			send "<green>====================<purple>&lHELP<reset><green>===================="
-			send "<light blue>/isw give <MagicItem> <Player>: gives <Player> a <MagicItem>"
+			send "<light blue>/isw give <MagicItem> <Player> <grey>: gives <Player> a <MagicItem>"
 			send "<green>====================<purple>&lHELP<reset><green>===================="
 
 		# if command not valid
