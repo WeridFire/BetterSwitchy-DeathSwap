@@ -46,6 +46,6 @@ Valid options are: gametime, min_player, max_player, countdown. (Note: all times
  
  	"/isw give [MagicItem] [Player]": gives [Player] a [MagicItem]
  
- Valid magic items are: jumper, switcher, mushroom_of_power.
+ Valid magic items are: jumper, switcher, mushroom_of_power, teleporter.
  
  
